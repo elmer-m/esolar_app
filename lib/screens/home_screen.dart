@@ -1,5 +1,12 @@
-import 'package:esolar_app/components/colors.dart';
+import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import 'package:esolar_app/components/colors.dart';
+import 'package:esolar_app/components/urls.dart';
+import 'package:esolar_app/screens/projects/projectDetails.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,222 +16,210 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  bool loaded = false;
+  bool hasProject = true;
+  var user;
+  var company;
+  var project;
+
+  Future<void> getInfo() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      user = jsonDecode(prefs.getString('user')!);
+      company = jsonDecode(prefs.getString('company')!);
+
+    });
+    try {
+      var url = Uri.parse(Urls().url['getHomeInfo']!);
+      var response = await http.get(url, headers: {'Accept': 'application/json'});
+      var data = jsonDecode(response.body);
+      if (mounted) {
+        setState(() {
+          hasProject = data['has'];
+          project = data['project'];
+          loaded = true;
+        });
+      }
+    } catch (e) {
+      print('Erro ao carregar dados: $e');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getInfo();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            margin: EdgeInsets.only(top: 20),
-            child: Text(
-              "Olá João",
-              style: TextStyle(
-                fontSize: 50,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1,
-                color: AppColors.title,
-              ),
+          const SizedBox(height: 20),
+          Text(
+            "Olá " + ((user != null && user['name'] != null)
+    ? (user['name'].contains(' ') ? user['name'].split(' ')[0] : user['name'])
+    : "visitante")
+,
+            style: TextStyle(
+              fontSize: 50,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+              color: AppColors.title,
             ),
           ),
           Row(
             children: [
-              Container(
-                child: Text(
-                  "Bem vindo a ",
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.title,
-                  ),
+              Text(
+                "Bem vindo a ",
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.title,
                 ),
               ),
-              Container(
-                child: Text(
-                  "Compania",
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
+              Text(
+                "Compania",
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
                 ),
               ),
             ],
           ),
-          Container(
-            margin: EdgeInsets.only(top: 15, bottom: 20),
-            child: Text(
-              "Próxima Visita",
-              style: TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.w700,
-                color: AppColors.title,
+          if (hasProject && project != null)
+            Container(
+              margin: const EdgeInsets.only(top: 15, bottom: 20),
+              child: Text(
+                "Próxima Visita",
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.title,
+                ),
               ),
             ),
-          ),
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: AppColors.border, width: 1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          child: Text(
-                            "Exemplo",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Container(
-                          child: Text(
-                            "Orçamento",
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                        SizedBox(height: 7),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on_outlined),
-                            SizedBox(width: 5),
-                            Container(
-                              child: Text(
-                                "Rua das flores nº 35, Corroios",
-                                style: TextStyle(fontSize: 15),
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      if (hasProject && project != null)
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ProjectDetailsScreen(project: project),
                               ),
+                            );
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(15),
+                            margin: const EdgeInsets.only(bottom: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(color: AppColors.border, width: 1),
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                          ],
-                        ),
-                        SizedBox(height: 7),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on_outlined),
-                            SizedBox(width: 5),
-                            Container(
-                              child: Text(
-                                "Orçamento",
-                                style: TextStyle(fontSize: 15),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 7),
-                        Row(
-                          children: [
-                            Icon(Icons.calendar_month_outlined),
-                            SizedBox(width: 5),
-                            Container(
-                              child: Text(
-                                "Orçamento",
-                                style: TextStyle(fontSize: 15),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 7),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: AppColors.border, width: 1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          child: Text(
-                            "Propostas Pendentes",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  project['PROJECT_NAME'],
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+                                ),
+                                Text(
+                                  project['CLIENT_NAME'],
+                                  style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 16),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(project['GOAL'], style: const TextStyle(fontSize: 16)),
+                                const SizedBox(height: 7),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.location_on_outlined),
+                                    const SizedBox(width: 5),
+                                    Text(project['ADDRESS'], style: const TextStyle(fontSize: 15)),
+                                  ],
+                                ),
+                                const SizedBox(height: 7),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.timeline),
+                                    const SizedBox(width: 5),
+                                    Text(project['STATE'], style: const TextStyle(fontSize: 15)),
+                                  ],
+                                ),
+                                const SizedBox(height: 7),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.calendar_month),
+                                    const SizedBox(width: 5),
+                                    Text(project['DATE'], style: const TextStyle(fontSize: 15)),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        SizedBox(height: 10),
-                        Container(
-                          child: Text("2", style: TextStyle(fontSize: 40)),
-                        ),
-                      ],
-                    ),
+                      const SizedBox(height: 10),
+                      _buildBox("Propostas Pendentes", "2"),
+                      const SizedBox(height: 10),
+                      _buildBox("Propostas Pendentes", "2"),
+                      const SizedBox(height: 10),
+                      _buildBox("Propostas Pendentes", "2"),
+                    ],
                   ),
-                  SizedBox(height: 10),
-                  Container(
+                ),
+
+                // Blur Overlay (usando Container ao invés de Positioned.fill)
+                AnimatedOpacity(
+                  curve: Curves.easeInOut,
+                  opacity: loaded ? 0.0 : 1.0,
+                  duration: const Duration(milliseconds: 500),
+                  child: Container(
                     width: double.infinity,
-                    padding: EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: AppColors.border, width: 1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          child: Text(
-                            "Propostas Pendentes",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Container(
-                          child: Text("2", style: TextStyle(fontSize: 40)),
-                        ),
-                      ],
+                    height: double.infinity,
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                      child: Container(color: Colors.black.withOpacity(0)),
                     ),
                   ),
-                  SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: AppColors.border, width: 1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          child: Text(
-                            "Propostas Pendentes",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Container(
-                          child: Text("2", style: TextStyle(fontSize: 40)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // Método auxiliar para criar os blocos com título e número
+  Widget _buildBox(String title, String value) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppColors.border, width: 1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+          ),
+          const SizedBox(height: 10),
+          Text(value, style: const TextStyle(fontSize: 40)),
         ],
       ),
     );

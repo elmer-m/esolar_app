@@ -1,26 +1,20 @@
+import 'package:dropdown_textfield/dropdown_textfield.dart';
 import 'package:esolar_app/components/colors.dart';
 import 'package:flutter/material.dart';
 
-class Input extends StatefulWidget {
-  final label;
-  final controller;
-  final place;
-  final password;
-  final type;
-
-  Input({super.key, 
-  required this.label,
-  required this.place,
-  this.controller,
-  this.password = false,
-  this.type = TextInputType.text,
-  });
+class Select extends StatefulWidget {
+  var selectLabel;
+  var data;
+  var controller;
+  var label;
+  var value;
+  Select({super.key, required this.data, required this.label, required this.value, required this.selectLabel, this.controller});
 
   @override
-  State<Input> createState() => _InputState();
+  State<Select> createState() => _SelectState();
 }
 
-class _InputState extends State<Input> {
+class _SelectState extends State<Select> {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -29,17 +23,17 @@ class _InputState extends State<Input> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 5),
           child: Text(
-            widget.label,
+            widget.selectLabel,
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
         ),
         SizedBox(height: 5),
-        TextField(
-          keyboardType: widget.type,
-          obscureText: widget.password,
+        DropDownTextField(
           controller: widget.controller,
-          decoration: InputDecoration(
-            hintText: widget.place,
+          enableSearch: true,
+          searchDecoration: InputDecoration(hintText: 'Pesquisar...', border: InputBorder.none),
+          textFieldDecoration: InputDecoration(
+            hintText: widget.selectLabel,
             contentPadding: EdgeInsets.symmetric(vertical: 7, horizontal: 10),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
@@ -54,6 +48,11 @@ class _InputState extends State<Input> {
               borderSide: BorderSide(color: AppColors.border, width: 2),
             ),
           ),
+          dropDownList:[
+            ...widget.data.map((item) => 
+              DropDownValueModel(name: item[widget.label] ?? 'Vazio', value: item[widget.value] ?? 'Vazio'),
+            ).toList(),
+          ],
         ),
       ],
     );

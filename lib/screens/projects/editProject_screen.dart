@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dropdown_textfield/dropdown_textfield.dart';
 import 'package:esolar_app/components/button.dart';
@@ -12,14 +13,16 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
-class AddprojectScreen extends StatefulWidget {
-  const AddprojectScreen({super.key});
+class EditProjectScreen extends StatefulWidget {
+  final Map<String, dynamic> project;
+
+  const EditProjectScreen({super.key, required this.project});
 
   @override
-  State<AddprojectScreen> createState() => _AddprojectScreenState();
+  State<EditProjectScreen> createState() => _EditProjectScreenState();
 }
 
-class _AddprojectScreenState extends State<AddprojectScreen> {
+class _EditProjectScreenState extends State<EditProjectScreen> {
   var concelhos;
   var distritos;
   var freguesias;
@@ -38,22 +41,55 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
   SingleValueDropDownController goal = SingleValueDropDownController();
 
   var loaded = false;
-  List<File> images = [];
+  List<File> newImages = []; // Novas imagens selecionadas
+  List<Uint8List> existingImages = []; // Imagens existentes do projeto
+  List<int> imagesToDelete = []; // IDs das imagens a serem deletadas
+  List<int> existingImageIds = []; // IDs das imagens existentes
 
-  // Campos para data e hora
   DateTime? selectedDateTime;
   TextEditingController dateTimeController = TextEditingController();
 
   final ImagePicker pickerImage = ImagePicker();
 
-  Future<void> selectImageGalery() async {
+  @override
+  void initState() {
+    super.initState();
+    _initializeControllers();
+    getAddInfo().then((_) {
+      loadExistingImages().then((_) {
+        setState(() {
+          loaded = true;
+        });
+      });
+    });
+  }
+
+  void _initializeControllers() {
+    client_name.text = widget.project['CLIENT_NAME'] ?? '';
+    project_name.text = widget.project['PROJECT_NAME'] ?? '';
+    phone_number.text = widget.project['PHONE_NUMBER'] ?? '';
+    address.text = widget.project['ADDRESS'] ?? '';
+    
+    // Parse existing date if available
+    if (widget.project['SCHEDULED_DATE'] != null) {
+      try {
+        selectedDateTime = DateTime.parse(widget.project['SCHEDULED_DATE']);
+        dateTimeController.text = DateFormat('dd/MM/yyyy HH:mm').format(selectedDateTime!);
+      } catch (e) {
+        selectedDateTime = null;
+        dateTimeController.text = '';
+      }
+    }
+  }
+
+  Future<void> selectImageGallery() async {
     final XFile? image = await pickerImage.pickImage(
       source: ImageSource.gallery,
     );
 
     if (image != null) {
       setState(() {
-        images.add(File(image.path));
+        newImages.add(File(image.path));
       });
     }
   }
@@ -115,8 +151,45 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
     }
   }
 
-  Future<void> createProject() async {
-    var url = Uri.parse(Urls().url['createProject']!);
+  Future<void> loadExistingImages() async {
+    if (widget.project['IMAGES_IDS'] != null && widget.project['IMAGES_IDS'].isNotEmpty) {
+      var url = Uri.parse(Urls().url['getImages']!);
+      var response = await http.post(
+        url,
+        headers: {'Accept': 'application/json'},
+        body: {
+          'ids': widget.project['IMAGES_IDS'],
+          'project_id': widget.project['ID'].toString(),
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        var responseData = jsonDecode(response.body);
+        var base64Images = responseData['images'] as List<dynamic>? ?? [];
+        var imageIds = responseData['image_ids'] as List<dynamic>? ?? [];
+        
+        print('Imagens carregadas: ${base64Images.length}');
+        print('IDs das imagens: $imageIds');
+        
+        for (int i = 0; i < base64Images.length; i++) {
+          setState(() {
+            existingImages.add(base64Decode(base64Images[i]));
+            if (i < imageIds.length) {
+              existingImageIds.add(int.parse(imageIds[i].toString()));
+            }
+          });
+        }
+        
+        print('IDs carregados no Flutter: $existingImageIds');
+      } else {
+        print('Erro ao carregar imagens: ${response.statusCode}');
+        print('Resposta: ${response.body}');
+      }
+    }
+  }
+
+  Future<void> updateProject() async {
+    var url = Uri.parse(Urls().url['updateProject']!);
 
     if (client_name.text.isEmpty ||
         project_name.text.isEmpty ||
@@ -142,6 +215,7 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
       'Content-Type': 'multipart/form-data',
     });
 
+    request.fields['project_id'] = widget.project['ID'].toString();
     request.fields['client_name'] = client_name.text;
     request.fields['project_name'] = project_name.text;
     request.fields['phone_number'] = phone_number.text;
@@ -151,47 +225,47 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
     request.fields['goal'] = goal.dropDownValue!.value.toString();
     request.fields['state'] = state.dropDownValue!.value.toString();
     request.fields['address'] = address.text;
-
-    // Adicionar data agendada se selecionada
+    request.fields['images_to_delete'] = jsonEncode(imagesToDelete);
+    
+    print('IDs de imagens para deletar: $imagesToDelete');
+    
     if (selectedDateTime != null) {
       request.fields['scheduled_date'] = selectedDateTime!.toIso8601String();
     }
 
-    for (int i = 0; i < images.length; i++) {
-      final file = images[i];
-
-      if (file != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath('images[]', file.path),
-        );
-      }
+    // Adicionar novas imagens
+    for (int i = 0; i < newImages.length; i++) {
+      final file = newImages[i];
+      request.files.add(
+        await http.MultipartFile.fromPath('new_images[]', file.path),
+      );
     }
+
+    setState(() {
+      loading = true;
+    });
 
     try {
       var bruteResponse = await request.send();
       var response = await http.Response.fromStream(bruteResponse);
       
-      print("Status: ${response.statusCode}");
-      print("Resposta: ${response.body}");
-
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Projeto criado com sucesso!'),
-            backgroundColor: Colors.green,
+            content: Text('Projeto atualizado com sucesso!'),
+            backgroundColor: AppColors.primary,
           ),
         );
-        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(true); // Retorna true indicando sucesso
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao criar projeto.'),
+            content: Text('Erro ao atualizar projeto.'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
-      print("Erro: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro de conexão.'),
@@ -199,30 +273,101 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
         ),
       );
     }
+
+    setState(() {
+      loading = false;
+    });
   }
 
   Future<void> getAddInfo() async {
     var url = Uri.parse(Urls().url['getAddInfo']!);
     var response = await http.get(url);
     if (response.statusCode == 200) {
-      concelhos = jsonDecode(response.body)['concelhos'];
-      distritos = jsonDecode(response.body)['distritos'];
-      freguesias = jsonDecode(response.body)['freguesias'];
-      goals = jsonDecode(response.body)['goals'];
-      states = jsonDecode(response.body)['states'];
+      setState(() {
+        concelhos = jsonDecode(response.body)['concelhos'];
+        distritos = jsonDecode(response.body)['distritos'];
+        freguesias = jsonDecode(response.body)['freguesias'];
+        goals = jsonDecode(response.body)['goals'];
+        states = jsonDecode(response.body)['states'];
+      });
+      
+      // Definir valores iniciais dos dropdowns
+      _setInitialDropdownValues();
     } else {
-      print("Deu errado");
+      print("Erro ao carregar informações");
     }
   }
 
-  @override
-  void initState() {
-    getAddInfo().then((_) {
-      setState(() {
-        loaded = true;
-      });
-    });
-    super.initState();
+  void _setInitialDropdownValues() {
+    // Definir concelho inicial
+    if (widget.project['CONCELHO'] != null && concelhos != null) {
+      var concelhoItem = concelhos.firstWhere(
+        (item) => item['CODIGO_CONCELHO'] == widget.project['CONCELHO'],
+        orElse: () => null,
+      );
+      if (concelhoItem != null) {
+        concelho.setDropDown(DropDownValueModel(
+          name: concelhoItem['DESCRICAO'],
+          value: concelhoItem['CODIGO_CONCELHO'],
+        ));
+      }
+    }
+
+    // Definir distrito inicial
+    if (widget.project['DISTRITO'] != null && distritos != null) {
+      var distritoItem = distritos.firstWhere(
+        (item) => item['CODIGO_DISTRITO'] == widget.project['DISTRITO'],
+        orElse: () => null,
+      );
+      if (distritoItem != null) {
+        distrito.setDropDown(DropDownValueModel(
+          name: distritoItem['DESCRICAO'],
+          value: distritoItem['CODIGO_DISTRITO'],
+        ));
+      }
+    }
+
+    // Definir freguesia inicial
+    if (widget.project['FREGUESIA'] != null && freguesias != null) {
+      var freguesiaItem = freguesias.firstWhere(
+        (item) => item['CODIGO_FREGUESIA'] == widget.project['FREGUESIA'],
+        orElse: () => null,
+      );
+      if (freguesiaItem != null) {
+        freguesia.setDropDown(DropDownValueModel(
+          name: freguesiaItem['DESCRICAO'],
+          value: freguesiaItem['CODIGO_FREGUESIA'],
+        ));
+      }
+    }
+
+    // Definir estado inicial
+    if (widget.project['STATE'] != null && states != null) {
+      var stateItem = states.firstWhere(
+        (item) => item['ESTADO'] == widget.project['STATE'],
+        orElse: () => null,
+      );
+      if (stateItem != null) {
+        state.setDropDown(DropDownValueModel(
+          name: stateItem['ESTADO'],
+          value: stateItem['ESTADO'],
+        ));
+      }
+    }
+
+    // Definir objetivo inicial
+    if (widget.project['GOAL'] != null && goals != null) {
+      var goalItem = goals.firstWhere(
+        (item) => item['OBJETIVO'] == widget.project['GOAL'],
+        orElse: () => null,
+      );
+      if (goalItem != null) {
+        goal.setDropDown(DropDownValueModel(
+          name: goalItem['OBJETIVO'],
+          value: goalItem['OBJETIVO'],
+        ));
+      }
+    }
   }
 
   @override
@@ -247,7 +392,7 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                   Row(
                     children: [
                       Text(
-                        "Novo Projeto",
+                        "Editar Projeto",
                         style: TextStyle(
                           fontSize: 40,
                           fontWeight: FontWeight.w700,
@@ -353,7 +498,7 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: 5),
                               child: Text(
-                                'Data e Hora Agendada (Opcional)',
+                                'Data e Hora Agendada',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
@@ -441,7 +586,71 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                                 child: Row(
                                   spacing: 5,
                                   children: [
-                                    ...images.map(
+                                    // Imagens existentes
+                                    ...existingImages.asMap().entries.map(
+                                      (entry) {
+                                        int index = entry.key;
+                                        Uint8List image = entry.value;
+                                        
+                                        return Stack(
+                                          children: [
+                                            Container(
+                                              clipBehavior: Clip.hardEdge,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: AppColors.border,
+                                                ),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              width: 100,
+                                              height: 100,
+                                              child: Image.memory(
+                                                image,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                            Positioned(
+                                              top: 5,
+                                              right: 5,
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  print('Tentando deletar imagem no índice: $index');
+                                                  print('IDs existentes: $existingImageIds');
+                                                  print('Total de imagens existentes: ${existingImages.length}');
+                                                  
+                                                  setState(() {
+                                                    if (index < existingImageIds.length) {
+                                                      int imageIdToDelete = existingImageIds[index];
+                                                      print('Adicionando ID $imageIdToDelete para deletar');
+                                                      imagesToDelete.add(imageIdToDelete);
+                                                      existingImageIds.removeAt(index);
+                                                    }
+                                                    existingImages.removeAt(index);
+                                                  });
+                                                  
+                                                  print('IDs para deletar: $imagesToDelete');
+                                                  print('IDs restantes: $existingImageIds');
+                                                },
+                                                child: Container(
+                                                  padding: EdgeInsets.all(4),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red,
+                                                    borderRadius: BorderRadius.circular(15),
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.close,
+                                                    color: Colors.white,
+                                                    size: 16,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                    // Novas imagens
+                                    ...newImages.map(
                                       (image) => Stack(
                                         children: [
                                           Container(
@@ -465,7 +674,7 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                                             child: GestureDetector(
                                               onTap: () {
                                                 setState(() {
-                                                  images.remove(image);
+                                                  newImages.remove(image);
                                                 });
                                               },
                                               child: Container(
@@ -485,8 +694,9 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                                         ],
                                       ),
                                     ),
+                                    // Botão para adicionar imagem
                                     GestureDetector(
-                                      onTap: () => selectImageGalery(),
+                                      onTap: () => selectImageGallery(),
                                       child: Container(
                                         decoration: BoxDecoration(
                                           border: Border.all(
@@ -518,18 +728,9 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                             SizedBox(height: 20),
                             Button(
                               loading: loading,
-                              icon: Icons.folder_outlined,
-                              label: 'Adicionar',
-                              functionVoid: () {
-                                setState(() {
-                                  loading = true;
-                                });
-                                createProject().then((_) {
-                                  setState(() {
-                                    loading = false;
-                                  });
-                                });
-                              },
+                              icon: Icons.save_outlined,
+                              label: 'Salvar Alterações',
+                              functionVoid: updateProject,
                             ),
                           ],
                         ),

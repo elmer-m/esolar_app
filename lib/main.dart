@@ -37,7 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String actualPage = '/app';
 
 
-
+  
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +48,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return MaterialApp(
+      theme: ThemeData(useMaterial3: true, appBarTheme: AppBarTheme(elevation: 0, scrolledUnderElevation: 0)),
       title: 'Login e Registro',
       initialRoute: actualPage,
       routes: {
