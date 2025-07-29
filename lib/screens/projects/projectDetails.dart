@@ -10,6 +10,7 @@ import 'package:esolar_app/screens/projects/visits/visitDetails_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:photo_view/photo_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProjectDetailsScreen extends StatefulWidget {
   final project;
@@ -32,8 +33,21 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    getAddInfo();
-    loadProjectImages();
+    firstLoad().then((_) {
+      getAddInfo();
+      loadProjectImages();
+    });
+  }
+
+  var user;
+  var company;
+
+  Future<void> firstLoad() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      user = jsonDecode(prefs.getString('user')!);
+      company = jsonDecode(prefs.getString('company')!);
+    });
   }
 
   Future<void> getAddInfo() async {
@@ -103,7 +117,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
   var allMaterials = [];
   Future<void> loadMaterials() async {
-    var url = Uri.parse(Urls().url['getVisitAddInfo']!);
+    var url = Uri.parse("${Urls().url['getVisitAddInfo']!}/${company['ID']}");
     var response = await http.get(url, headers: {'Accept': 'application/json'});
 
     if (response.statusCode == 200) {
@@ -205,8 +219,9 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               ),
             ),
             Text(
-              budgetLoaded ? 
-              'Orçamento: ' + budget.toString() + '€': 'A carregar...',
+              budgetLoaded
+                  ? 'Orçamento: ' + budget.toString() + '€'
+                  : 'A carregar...',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
@@ -265,18 +280,16 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                           widget.project['GOAL'],
                         ),
                         widget.project['DATE'] != null
-                        ?
-                        _buildInfoRow(
-                          Icons.calendar_month,
-                          "Data da Visita",
-                          widget.project['DATE'].toString(),
-                        ) : _buildInfoRow(
-                          Icons.calendar_month,
-                          "Data da Visita",
-                          'Sem data marcada.',
-                        )
-
-                        
+                            ? _buildInfoRow(
+                                Icons.calendar_month,
+                                "Data da Visita",
+                                widget.project['DATE'].toString(),
+                              )
+                            : _buildInfoRow(
+                                Icons.calendar_month,
+                                "Data da Visita",
+                                'Sem data marcada.',
+                              ),
                       ]),
 
                       SizedBox(height: 25),
@@ -528,8 +541,14 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                         icon: Icons.edit,
                         label: 'Editar Projeto',
                         color: Colors.orange,
-                        onTap: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => EditProjectScreen(project: widget.project)));
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  EditProjectScreen(project: widget.project),
+                            ),
+                          );
                         },
                       ),
                     ],

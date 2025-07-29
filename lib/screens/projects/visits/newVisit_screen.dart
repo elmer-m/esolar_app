@@ -11,6 +11,7 @@ import 'package:esolar_app/components/select.dart';
 import 'package:esolar_app/components/urls.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NewVisitScreen extends StatefulWidget {
   final projectId;
@@ -144,8 +145,19 @@ class _NewVisitScreenState extends State<NewVisitScreen> {
     }
   }
 
+      var user;
+  var company;
+
+  Future<void> firstLoad() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      user = jsonDecode(prefs.getString('user')!);
+      company = jsonDecode(prefs.getString('company')!);
+    });
+  }
+
   Future<void> getVisitAddInfo() async {
-    var url = Uri.parse(Urls().url['getVisitAddInfo']!);
+    var url = Uri.parse("${Urls().url['getVisitAddInfo']!}/${company['ID']}");
     var response = await http.get(url, headers: {'Accept': 'application/json'});
     if (response.statusCode == 200) {
       client_types = jsonDecode(response.body)['client_types'];
@@ -159,9 +171,11 @@ class _NewVisitScreenState extends State<NewVisitScreen> {
   @override
   void initState() {
     super.initState();
-    getVisitAddInfo().then((_) {
-      setState(() {
-        loaded = true;
+    firstLoad().then((_){
+      getVisitAddInfo().then((_) {
+        setState(() {
+          loaded = true;
+        });
       });
     });
   }
@@ -303,7 +317,7 @@ class _NewVisitScreenState extends State<NewVisitScreen> {
                                           Expanded(
                                             child: SingleChildScrollView(
                                               child: Column(
-                                                children: materials != null
+                                                children: materials.isNotEmpty
                                                     ? materials.map<Widget>((material) {
                                                         return Column(
                                                           children: [

@@ -10,5 +10,8 @@ class Urls {
     'getImages': 'http://192.168.15.180:8002/api/eaap/loadImages',
     'updateProject': 'http://192.168.15.180:8002/api/eaap/updateProject',
     'getHomeInfo': 'http://192.168.15.180:8002/api/eaap/homeInfo',
+    'addCol': 'http://192.168.15.180:8002/api/eaap/createCol',
+    'getEmployees': 'http://192.168.15.180:8002/api/eaap/getEmployees',
+    'deleteEmployee': 'http://192.168.15.180:8002/api/eaap/deleteEmployee',
   };
 }

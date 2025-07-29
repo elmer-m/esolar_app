@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddprojectScreen extends StatefulWidget {
   const AddprojectScreen({super.key});
@@ -151,6 +152,9 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
     request.fields['goal'] = goal.dropDownValue!.value.toString();
     request.fields['state'] = state.dropDownValue!.value.toString();
     request.fields['address'] = address.text;
+    request.fields['user_id'] = user['id'].toString();
+    request.fields['company_id'] = company['ID'].toString();
+
 
     // Adicionar data agendada se selecionada
     if (selectedDateTime != null) {
@@ -200,8 +204,14 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
       );
     }
   }
-
+  var user;
+  var company;
   Future<void> getAddInfo() async {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      user = jsonDecode(prefs.getString('user')!);
+      company = jsonDecode(prefs.getString('company')!);
+    });
     var url = Uri.parse(Urls().url['getAddInfo']!);
     var response = await http.get(url);
     if (response.statusCode == 200) {

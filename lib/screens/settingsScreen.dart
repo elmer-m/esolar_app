@@ -4,6 +4,7 @@ import 'package:esolar_app/components/urls.dart';
 import 'package:esolar_app/components/input.dart';
 import 'package:esolar_app/components/button.dart';
 import 'package:esolar_app/screens/login_screen.dart';
+import 'package:esolar_app/screens/settings/employees_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,10 +21,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool loadingLogout = false;
   bool loadingAddUser = false;
 
+  var user;
+  var company;
+
+  Future<void> firstLoad() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      user = jsonDecode(prefs.getString('user')!);
+      company = jsonDecode(prefs.getString('company')!);
+    });
+  }
+
   // Controllers para adicionar colaborador
   TextEditingController nameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+
+  Future<void> addCol(BuildContext contextt) async {
+    var url = Uri.parse(Urls().url['addCol']!);
+    // var request = http.post(url, headers: {'Accept': 'application/json'});
+    var request = http.MultipartRequest('POST', url);
+    request.headers.addAll({'Accept': 'application/json'});
+    request.fields['name'] = nameController.text;
+    request.fields['email'] = emailController.text;
+    request.fields['password'] = passwordController.text;
+    request.fields['company_id'] = company['ID'].toString();
+    var bruteReponse = await request.send();
+    var response = await http.Response.fromStream(bruteReponse);
+    Navigator.pop(contextt);
+    print(response.body);
+  }
 
   Future<void> logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -32,7 +59,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
 
     prefs.clear();
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
   }
 
   Future<void> addCollaborator() async {
@@ -96,6 +126,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         loadingAddUser = false;
       });
     }
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    firstLoad();
   }
 
   void showAddCollaboratorDialog() {
@@ -164,7 +201,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: loadingAddUser ? null : addCollaborator,
+                  onPressed: () {
+                    addCol(context);
+                  },
                   child: loadingAddUser
                       ? SizedBox(
                           width: 20,
@@ -319,7 +358,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   "Configurações",
                   style: TextStyle(
-                    fontSize: 50,
+                    fontSize: 40,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1,
                     color: AppColors.title,
@@ -368,7 +407,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      "João Silva",
+                                      user != null ? user['name'] : 'user',
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w600,
@@ -376,7 +415,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       ),
                                     ),
                                     Text(
-                                      "joao@empresa.com",
+                                      user != null
+                                          ? user['email']
+                                          : 'user@gmail.com',
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: Colors.grey[600],
@@ -428,7 +469,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 subtitle: "Visualizar e editar colaboradores",
                                 iconColor: Colors.blue,
                                 onTap: () {
-                                  // Implementar navegação para gerenciar equipe
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => EmployeesScreen()));
                                 },
                               ),
                               buildSettingItem(
@@ -447,70 +488,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         SizedBox(height: 20),
 
                         // Configurações da aplicação
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: AppColors.border,
-                              width: 1,
-                            ),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.all(15),
-                                child: Text(
-                                  "Aplicação",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.title,
-                                  ),
-                                ),
-                              ),
-                              buildSettingItem(
-                                icon: Icons.notifications,
-                                title: "Notificações",
-                                subtitle: "Gerenciar alertas e lembretes",
-                                iconColor: Colors.orange,
-                                onTap: () {
-                                  // Implementar configurações de notificação
-                                },
-                              ),
-                              buildSettingItem(
-                                icon: Icons.language,
-                                title: "Idioma",
-                                subtitle: "Português (Brasil)",
-                                iconColor: Colors.purple,
-                                onTap: () {
-                                  // Implementar seleção de idioma
-                                },
-                              ),
-                              buildSettingItem(
-                                icon: Icons.dark_mode,
-                                title: "Tema",
-                                subtitle: "Claro",
-                                iconColor: Colors.indigo,
-                                onTap: () {
-                                  // Implementar mudança de tema
-                                },
-                              ),
-                              buildSettingItem(
-                                icon: Icons.backup,
-                                title: "Backup",
-                                subtitle: "Fazer backup dos dados",
-                                iconColor: Colors.teal,
-                                onTap: () {
-                                  // Implementar backup
-                                },
-                                showDivider: false,
-                              ),
-                            ],
-                          ),
-                        ),
+                        // Container(
+                        //   width: double.infinity,
+                        //   decoration: BoxDecoration(
+                        //     color: Colors.white,
+                        //     border: Border.all(
+                        //       color: AppColors.border,
+                        //       width: 1,
+                        //     ),
+                        //     borderRadius: BorderRadius.circular(15),
+                        //   ),
+                        //   child: Column(
+                        //     crossAxisAlignment: CrossAxisAlignment.start,
+                        //     children: [
+                        //       Padding(
+                        //         padding: EdgeInsets.all(15),
+                        //         child: Text(
+                        //           "Aplicação",
+                        //           style: TextStyle(
+                        //             fontSize: 18,
+                        //             fontWeight: FontWeight.w700,
+                        //             color: AppColors.title,
+                        //           ),
+                        //         ),
+                        //       ),
+                        //       buildSettingItem(
+                        //         icon: Icons.notifications,
+                        //         title: "Notificações",
+                        //         subtitle: "Gerenciar alertas e lembretes",
+                        //         iconColor: Colors.orange,
+                        //         onTap: () {
+                        //           // Implementar configurações de notificação
+                        //         },
+                        //       ),
+                        //       buildSettingItem(
+                        //         icon: Icons.language,
+                        //         title: "Idioma",
+                        //         subtitle: "Português (Brasil)",
+                        //         iconColor: Colors.purple,
+                        //         onTap: () {
+                        //           // Implementar seleção de idioma
+                        //         },
+                        //       ),
+                        //       buildSettingItem(
+                        //         icon: Icons.dark_mode,
+                        //         title: "Tema",
+                        //         subtitle: "Claro",
+                        //         iconColor: Colors.indigo,
+                        //         onTap: () {
+                        //           // Implementar mudança de tema
+                        //         },
+                        //       ),
+                        //       buildSettingItem(
+                        //         icon: Icons.backup,
+                        //         title: "Backup",
+                        //         subtitle: "Fazer backup dos dados",
+                        //         iconColor: Colors.teal,
+                        //         onTap: () {
+                        //           // Implementar backup
+                        //         },
+                        //         showDivider: false,
+                        //       ),
+                        //     ],
+                        //   ),
+                        // ),
                         SizedBox(height: 20),
 
                         // Suporte e informações
@@ -538,24 +579,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                 ),
                               ),
-                              buildSettingItem(
-                                icon: Icons.help,
-                                title: "Central de Ajuda",
-                                subtitle: "FAQ e tutoriais",
-                                iconColor: Colors.cyan,
-                                onTap: () {
-                                  // Implementar central de ajuda
-                                },
-                              ),
-                              buildSettingItem(
-                                icon: Icons.contact_support,
-                                title: "Contatar Suporte",
-                                subtitle: "Envie suas dúvidas",
-                                iconColor: Colors.amber,
-                                onTap: () {
-                                  // Implementar contato com suporte
-                                },
-                              ),
+                              // buildSettingItem(
+                              //   icon: Icons.help,
+                              //   title: "Central de Ajuda",
+                              //   subtitle: "FAQ e tutoriais",
+                              //   iconColor: Colors.cyan,
+                              //   onTap: () {
+                              //     // Implementar central de ajuda
+                              //   },
+                              // ),
+                              // buildSettingItem(
+                              //   icon: Icons.contact_support,
+                              //   title: "Contatar Suporte",
+                              //   subtitle: "Envie suas dúvidas",
+                              //   iconColor: Colors.amber,
+                              //   onTap: () {
+                              //     // Implementar contato com suporte
+                              //   },
+                              // ),
                               buildSettingItem(
                                 icon: Icons.info,
                                 title: "Sobre",

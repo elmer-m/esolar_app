@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class VisitDetailsScreen extends StatefulWidget {
   final visit;
@@ -30,8 +31,10 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    loadVisitImages();
-    loadMaterials();
+    firstLoad().then((_){
+      loadVisitImages();
+      loadMaterials();
+    });
   }
 
   Future<void> loadVisitImages() async {
@@ -92,8 +95,19 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
     }
   }
 
+    var user;
+  var company;
+
+  Future<void> firstLoad() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      user = jsonDecode(prefs.getString('user')!);
+      company = jsonDecode(prefs.getString('company')!);
+    });
+  }
+
   Future<void> loadMaterials() async {
-    var url = Uri.parse(Urls().url['getVisitAddInfo']!);
+    var url = Uri.parse("${Urls().url['getVisitAddInfo']!}/${company['ID']}");
     var response = await http.get(url, headers: {'Accept': 'application/json'});
 
     if (response.statusCode == 200) {

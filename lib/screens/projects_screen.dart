@@ -5,6 +5,7 @@ import 'package:esolar_app/components/urls.dart';
 import 'package:esolar_app/screens/projects/projectDetails.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key});
@@ -16,15 +17,22 @@ class ProjectsScreen extends StatefulWidget {
 class _ProjectsScreenState extends State<ProjectsScreen> {
   bool loaded = false;
   var projects;
+  var user;
+  var company;
 
   Future<void> firstLoad() async {
-    var url = Uri.parse(Urls().url['getProjects']!);
-    var response = await http.get(url);
-    if(mounted){
+    SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      projects = jsonDecode(response.body)['projects'];
+      user = jsonDecode(prefs.getString('user')!);
+      company = jsonDecode(prefs.getString('company')!);
     });
-
+    var url = Uri.parse("${Urls().url['getProjects']!}/${company['ID']}");
+    var response = await http.get(url, headers: {'Accept': 'application/json'});
+    print(response.body);
+    if (mounted) {
+      setState(() {
+        projects = jsonDecode(response.body)['projects'];
+      });
     }
     print(response.body);
   }
@@ -77,88 +85,104 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          ...projects.map((project) {
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (context) => ProjectDetailsScreen(project: project)));
-                              },
-                              child: Column(
-                                children: [
-                                  Container(
-                                    width: double.infinity,
-                                    padding: EdgeInsets.all(15),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(
-                                        color: AppColors.border,
-                                        width: 1,
+                          projects.isEmpty
+                              ? Column(
+                                  children: [
+                                    Center(child: Text("Não há projetos.")),
+                                    SizedBox(height: 2000),
+                                  ],
+                                )
+                              : Column(
+                                  children: projects.map<Widget>((project) {
+                                    return GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                ProjectDetailsScreen(
+                                                  project: project,
+                                                ),
+                                          ),
+                                        );
+                                      },
+                                      child: Column(
+                                        children: [
+                                          Container(
+                                            width: double.infinity,
+                                            padding: EdgeInsets.all(15),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              border: Border.all(
+                                                color: AppColors.border,
+                                                width: 1,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  project['PROJECT_NAME'],
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 18,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  project['CLIENT_NAME'],
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w400,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 10),
+                                                Text(
+                                                  project['GOAL'],
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 7),
+                                                Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons
+                                                          .location_on_outlined,
+                                                    ),
+                                                    SizedBox(width: 5),
+                                                    Text(
+                                                      project['ADDRESS'],
+                                                      style: TextStyle(
+                                                        fontSize: 15,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                SizedBox(height: 7),
+                                                Row(
+                                                  children: [
+                                                    Icon(Icons.timeline),
+                                                    SizedBox(width: 5),
+                                                    Text(
+                                                      project['STATE'],
+                                                      style: TextStyle(
+                                                        fontSize: 15,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          SizedBox(height: 10),
+                                        ],
                                       ),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          child: Text(
-                                            project['PROJECT_NAME'],
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 18,
-                                            ),
-                                          ),
-                                        ),
-                                        Container(
-                                          child: Text(
-                                            project['CLIENT_NAME'],
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w400,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(height: 10),
-                                        Container(
-                                          child: Text(
-                                            project['GOAL'],
-                                            style: TextStyle(fontSize: 16),
-                                          ),
-                                        ),
-                                        SizedBox(height: 7),
-                                        Row(
-                                          children: [
-                                            Icon(Icons.location_on_outlined),
-                                            SizedBox(width: 5),
-                                            Container(
-                                              child: Text(
-                                                project['ADDRESS'],
-                                                style: TextStyle(fontSize: 15),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        SizedBox(height: 7),
-                                        Row(
-                                          children: [
-                                            Icon(Icons.timeline),
-                                            SizedBox(width: 5),
-                                            Container(
-                                              child: Text(
-                                                project['STATE'],
-                                                style: TextStyle(fontSize: 15),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        SizedBox(height: 7),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(height: 10),
-                                ],
-                              ),
-                            );
-                          }),
+                                    );
+                                  }).toList(), // ← AQUI
+                                ),
                         ],
                       ),
                     ),

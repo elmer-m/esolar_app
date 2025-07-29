@@ -27,11 +27,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       user = jsonDecode(prefs.getString('user')!);
       company = jsonDecode(prefs.getString('company')!);
-
     });
     try {
-      var url = Uri.parse(Urls().url['getHomeInfo']!);
-      var response = await http.get(url, headers: {'Accept': 'application/json'});
+      var url = Uri.parse("${Urls().url['getHomeInfo']!}/${company['ID']}");
+      var response = await http.get(
+        url,
+        headers: {'Accept': 'application/json'},
+      );
       var data = jsonDecode(response.body);
       if (mounted) {
         setState(() {
@@ -60,10 +62,12 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const SizedBox(height: 20),
           Text(
-            "Olá " + ((user != null && user['name'] != null)
-    ? (user['name'].contains(' ') ? user['name'].split(' ')[0] : user['name'])
-    : "visitante")
-,
+            "Olá " +
+                ((user != null && user['name'] != null)
+                    ? (user['name'].contains(' ')
+                          ? user['name'].split(' ')[0]
+                          : user['name'])
+                    : "visitante"),
             style: TextStyle(
               fontSize: 50,
               fontWeight: FontWeight.w700,
@@ -82,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Text(
-                "Compania",
+                company != null ? company['NAME'] : '',
                 style: TextStyle(
                   fontSize: 25,
                   fontWeight: FontWeight.w700,
@@ -115,7 +119,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => ProjectDetailsScreen(project: project),
+                                builder: (_) =>
+                                    ProjectDetailsScreen(project: project),
                               ),
                             );
                           },
@@ -125,7 +130,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             margin: const EdgeInsets.only(bottom: 10),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border.all(color: AppColors.border, width: 1),
+                              border: Border.all(
+                                color: AppColors.border,
+                                width: 1,
+                              ),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Column(
@@ -133,20 +141,32 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Text(
                                   project['PROJECT_NAME'],
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 18,
+                                  ),
                                 ),
                                 Text(
                                   project['CLIENT_NAME'],
-                                  style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 16),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 16,
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
-                                Text(project['GOAL'], style: const TextStyle(fontSize: 16)),
+                                Text(
+                                  project['GOAL'],
+                                  style: const TextStyle(fontSize: 16),
+                                ),
                                 const SizedBox(height: 7),
                                 Row(
                                   children: [
                                     const Icon(Icons.location_on_outlined),
                                     const SizedBox(width: 5),
-                                    Text(project['ADDRESS'], style: const TextStyle(fontSize: 15)),
+                                    Text(
+                                      project['ADDRESS'],
+                                      style: const TextStyle(fontSize: 15),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 7),
@@ -154,7 +174,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   children: [
                                     const Icon(Icons.timeline),
                                     const SizedBox(width: 5),
-                                    Text(project['STATE'], style: const TextStyle(fontSize: 15)),
+                                    Text(
+                                      project['STATE'],
+                                      style: const TextStyle(fontSize: 15),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 7),
@@ -162,7 +185,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   children: [
                                     const Icon(Icons.calendar_month),
                                     const SizedBox(width: 5),
-                                    Text(project['DATE'], style: const TextStyle(fontSize: 15)),
+                                    Text(
+                                      project['DATE'],
+                                      style: const TextStyle(fontSize: 15),
+                                    ),
                                   ],
                                 ),
                               ],
