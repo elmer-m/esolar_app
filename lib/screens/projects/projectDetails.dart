@@ -76,6 +76,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     );
     if (response.statusCode == 200) {
       var base64Images = jsonDecode(response.body)['images'];
+      if (!mounted) return;
       base64Images.forEach((base64) {
         setState(() {
           images.add(base64Decode(base64));
@@ -105,6 +106,24 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     Navigator.of(context).pushNamed('/edit_project', arguments: widget.project);
   }
 
+  String getMaterialName(int materialId) {
+    if (allMaterials == null) return 'Carregando...';
+    var material = allMaterials.firstWhere(
+      (m) => m['ID'] == materialId,
+      orElse: () => {'NAME': 'Material desconhecido'},
+    );
+    return material['NAME'];
+  }
+
+  String getMaterialValue(int materialId) {
+    if (allMaterials == null) return 'Carregando...';
+    var material = allMaterials.firstWhere(
+      (m) => m['ID'] == materialId,
+      orElse: () => {'NAME': 'Material desconhecido'},
+    );
+    return material['VALUE'];
+  }
+
   Future<void> addProjectItem() async {
     // Implementar lógica para adicionar item ao projeto
     ScaffoldMessenger.of(context).showSnackBar(
@@ -116,22 +135,23 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   }
 
   var allMaterials = [];
+  var visitsMaterials = [];
+
   Future<void> loadMaterials() async {
     var url = Uri.parse("${Urls().url['getVisitAddInfo']!}/${company['ID']}");
     var response = await http.get(url, headers: {'Accept': 'application/json'});
 
     if (response.statusCode == 200) {
       allMaterials = jsonDecode(response.body)['materials'];
-      var visitsMaterials = [];
       visits.forEach((visit) {
         jsonDecode(visit['MATERIALS']).forEach((visitMaterial) {
-          print("Antes");
           print(visitMaterial);
-          visitsMaterials.add(visitMaterial);
+          setState(() {
+            visitsMaterials.add(visitMaterial);
+          });
         });
       });
       print("Materiais das visitasx");
-      print(visitsMaterials);
 
       visitsMaterials.forEach((material) {
         allMaterials.forEach((materialWValue) {
@@ -146,6 +166,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       setState(() {
         budgetLoaded = true;
       });
+      print("Materiais das visitas: " + visitsMaterials.toString());
     }
   }
 
@@ -164,43 +185,43 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
           },
           icon: Icon(Icons.arrow_back_ios, color: AppColors.title),
         ),
-        actions: [
-          PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: AppColors.title),
-            onSelected: (String value) {
-              switch (value) {
-                case 'edit':
-                  editProject();
-                  break;
-                case 'delete':
-                  _showDeleteDialog();
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) => [
-              PopupMenuItem<String>(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit, color: AppColors.title),
-                    SizedBox(width: 8),
-                    Text('Editar'),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Excluir', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
+        // actions: [
+        //   PopupMenuButton<String>(
+        //     icon: Icon(Icons.more_vert, color: AppColors.title),
+        //     onSelected: (String value) {
+        //       switch (value) {
+        //         case 'edit':
+        //           editProject();
+        //           break;
+        //         case 'delete':
+        //           _showDeleteDialog();
+        //           break;
+        //       }
+        //     },
+        //     itemBuilder: (BuildContext context) => [
+        //       PopupMenuItem<String>(
+        //         value: 'edit',
+        //         child: Row(
+        //           children: [
+        //             Icon(Icons.edit, color: AppColors.title),
+        //             SizedBox(width: 8),
+        //             Text('Editar'),
+        //           ],
+        //         ),
+        //       ),
+        //       PopupMenuItem<String>(
+        //         value: 'delete',
+        //         child: Row(
+        //           children: [
+        //             Icon(Icons.delete, color: Colors.red),
+        //             SizedBox(width: 8),
+        //             Text('Excluir', style: TextStyle(color: Colors.red)),
+        //           ],
+        //         ),
+        //       ),
+        //     ],
+        //   ),
+        // ],
       ),
       backgroundColor: AppColors.background,
       body: Padding(
@@ -304,7 +325,13 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               : concelhos.firstWhere(
                                   (concelho) =>
                                       concelho['CODIGO_CONCELHO'] ==
-                                      widget.project['CONCELHO'],
+                                          jsonDecode(
+                                            widget.project['CONCELHO'],
+                                          )['CODIGO_CONCELHO'] &&
+                                      concelho['CODIGO_DISTRITO'] ==
+                                          jsonDecode(
+                                            widget.project['CONCELHO'],
+                                          )['CODIGO_DISTRITO'],
                                   orElse: () => {'DESCRICAO': 'Desconhecido'},
                                 )['DESCRICAO'],
                         ),
@@ -316,7 +343,9 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               : distritos.firstWhere(
                                   (distrito) =>
                                       distrito['CODIGO_DISTRITO'] ==
-                                      widget.project['DISTRITO'],
+                                      jsonDecode(
+                                        widget.project['DISTRITO'],
+                                      )['CODIGO_DISTRITO'],
                                 )['DESCRICAO'],
                         ),
                         _buildInfoRow(
@@ -327,7 +356,17 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               : freguesias.firstWhere(
                                   (freguesia) =>
                                       freguesia['CODIGO_FREGUESIA'] ==
-                                      widget.project['FREGUESIA'],
+                                          jsonDecode(
+                                            widget.project['FREGUESIA'],
+                                          )['CODIGO_FREGUESIA'] &&
+                                      freguesia['CODIGO_DISTRITO'] ==
+                                          jsonDecode(
+                                            widget.project['FREGUESIA'],
+                                          )['CODIGO_DISTRITO'] &&
+                                      freguesia['CODIGO_CONCELHO'] ==
+                                          jsonDecode(
+                                            widget.project['FREGUESIA'],
+                                          )['CODIGO_CONCELHO'],
                                 )['DESCRICAO'],
                         ),
                       ]),
@@ -388,16 +427,13 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                           ),
                         ),
                         SizedBox(height: 25),
-                      ] else if (images.isEmpty &&
-                          widget.project['IMAGES_IDS'] != null) ...[
+                      ] else if (widget.project['IMAGES_IDS'] == null) ...[
                         Center(
                           child: CircularProgressIndicator(
                             color: AppColors.primary,
                           ),
                         ),
                       ],
-
-                      // Botões de ação
                       Text(
                         'Ações',
                         style: TextStyle(
@@ -458,7 +494,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                                     Row(
                                       children: [
                                         Text(
-                                          "Materiais",
+                                          "Visitas",
                                           style: TextStyle(
                                             fontSize: 40,
                                             fontWeight: FontWeight.w700,
@@ -526,6 +562,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                                               },
                                             ),
                                     ),
+                                    SizedBox(height: 25),
                                   ],
                                 ),
                               );
@@ -551,6 +588,25 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                           );
                         },
                       ),
+                      SizedBox(height: 10),
+
+                      // Materiais utilizados
+                      if (visitsMaterials.isNotEmpty) ...[
+                        _buildInfoSection("Materiais Utilizados", [
+                          ...visitsMaterials
+                              .map(
+                                (material) => _buildMaterialRow(
+                                  getMaterialName(material['ID']) +
+                                      ' - ' +
+                                      getMaterialValue(material['ID']) +
+                                      '€',
+                                  material['VALUE'].toString(),
+                                ),
+                              )
+                              .toList(),
+                        ]),
+                        SizedBox(height: 25),
+                      ],
                     ],
                   ),
                 ),
@@ -688,4 +744,42 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       },
     );
   }
+}
+
+Widget _buildMaterialRow(String materialName, String quantity) {
+  return Padding(
+    padding: EdgeInsets.only(bottom: 12),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(Icons.construction_outlined, size: 20, color: AppColors.primary),
+        SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            materialName,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: AppColors.title,
+            ),
+          ),
+        ),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            quantity,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }

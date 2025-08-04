@@ -83,9 +83,9 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
     if (pickedDate != null) {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
-        initialTime: selectedDateTime != null 
-          ? TimeOfDay.fromDateTime(selectedDateTime!) 
-          : TimeOfDay.now(),
+        initialTime: selectedDateTime != null
+            ? TimeOfDay.fromDateTime(selectedDateTime!)
+            : TimeOfDay.now(),
         builder: (context, child) {
           return Theme(
             data: Theme.of(context).copyWith(
@@ -110,7 +110,9 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
             pickedTime.hour,
             pickedTime.minute,
           );
-          dateTimeController.text = DateFormat('dd/MM/yyyy HH:mm').format(selectedDateTime!);
+          dateTimeController.text = DateFormat(
+            'dd/MM/yyyy HH:mm',
+          ).format(selectedDateTime!);
         });
       }
     }
@@ -138,23 +140,19 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
     }
 
     var request = http.MultipartRequest('POST', url);
-    request.headers.addAll({
-      'Accept': 'application/json',
-      'Content-Type': 'multipart/form-data',
-    });
+    request.headers.addAll({'Accept': 'application/json'});
 
     request.fields['client_name'] = client_name.text;
     request.fields['project_name'] = project_name.text;
     request.fields['phone_number'] = phone_number.text;
-    request.fields['concelho'] = concelho.dropDownValue!.value.toString();
-    request.fields['distrito'] = distrito.dropDownValue!.value.toString();
-    request.fields['freguesia'] = freguesia.dropDownValue!.value.toString();
+    request.fields['concelho'] = jsonEncode(concelho.dropDownValue!.value);
+    request.fields['distrito'] = jsonEncode(distrito.dropDownValue!.value);
+    request.fields['freguesia'] = jsonEncode(freguesia.dropDownValue!.value);
     request.fields['goal'] = goal.dropDownValue!.value.toString();
     request.fields['state'] = state.dropDownValue!.value.toString();
     request.fields['address'] = address.text;
     request.fields['user_id'] = user['id'].toString();
     request.fields['company_id'] = company['ID'].toString();
-
 
     // Adicionar data agendada se selecionada
     if (selectedDateTime != null) {
@@ -174,7 +172,7 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
     try {
       var bruteResponse = await request.send();
       var response = await http.Response.fromStream(bruteResponse);
-      
+
       print("Status: ${response.statusCode}");
       print("Resposta: ${response.body}");
 
@@ -204,10 +202,11 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
       );
     }
   }
+
   var user;
   var company;
   Future<void> getAddInfo() async {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       user = jsonDecode(prefs.getString('user')!);
       company = jsonDecode(prefs.getString('company')!);
@@ -312,28 +311,217 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                               place: '351 935 123 758',
                             ),
                             SizedBox(height: 10),
-                            Select(
-                              controller: concelho,
-                              data: concelhos,
-                              label: 'DESCRICAO',
-                              value: 'CODIGO_CONCELHO',
-                              selectLabel: 'Concelho',
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 5),
+                                  child: Text(
+                                    'Distrito',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 5),
+                                DropDownTextField(
+                                  onChanged: (value) {
+                                    print(value);
+                                  },
+                                  controller: distrito,
+                                  enableSearch: true,
+                                  searchDecoration: InputDecoration(
+                                    hintText: 'Pesquisar...',
+                                    border: InputBorder.none,
+                                  ),
+                                  textFieldDecoration: InputDecoration(
+                                    hintText: 'Distrito',
+                                    contentPadding: EdgeInsets.symmetric(
+                                      vertical: 7,
+                                      horizontal: 10,
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                      borderSide: BorderSide(
+                                        color: AppColors.border,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                      borderSide: BorderSide(
+                                        color: AppColors.border,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                      borderSide: BorderSide(
+                                        color: AppColors.border,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  dropDownList: [
+                                    ...distritos
+                                        .map(
+                                          (distrito) => DropDownValueModel(
+                                            name: distrito['DESCRICAO'],
+                                            value: {
+                                              'CODIGO_DISTRITO':
+                                                  distrito['CODIGO_DISTRITO'],
+                                            },
+                                          ),
+                                        )
+                                        .toList(),
+                                  ],
+                                ),
+                              ],
                             ),
                             SizedBox(height: 10),
-                            Select(
-                              controller: distrito,
-                              data: distritos,
-                              label: 'DESCRICAO',
-                              value: 'CODIGO_DISTRITO',
-                              selectLabel: 'Distrito',
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 5),
+                                  child: Text(
+                                    'Concelho',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 5),
+                                DropDownTextField(
+                                  onChanged: (value) {
+                                    print(value);
+                                  },
+                                  controller: concelho,
+                                  enableSearch: true,
+                                  searchDecoration: InputDecoration(
+                                    hintText: 'Pesquisar...',
+                                    border: InputBorder.none,
+                                  ),
+                                  textFieldDecoration: InputDecoration(
+                                    hintText: 'Concelho',
+                                    contentPadding: EdgeInsets.symmetric(
+                                      vertical: 7,
+                                      horizontal: 10,
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                      borderSide: BorderSide(
+                                        color: AppColors.border,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                      borderSide: BorderSide(
+                                        color: AppColors.border,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                      borderSide: BorderSide(
+                                        color: AppColors.border,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  dropDownList: [
+                                    ...concelhos
+                                        .map(
+                                          (concelho) => DropDownValueModel(
+                                            name: concelho['DESCRICAO'],
+                                            value: {
+                                              'CODIGO_CONCELHO':
+                                                  concelho['CODIGO_CONCELHO'],
+                                              'CODIGO_DISTRITO':
+                                                  concelho['CODIGO_DISTRITO'],
+                                            },
+                                          ),
+                                        )
+                                        .toList(),
+                                  ],
+                                ),
+                              ],
                             ),
                             SizedBox(height: 10),
-                            Select(
-                              controller: freguesia,
-                              data: freguesias,
-                              label: 'DESCRICAO',
-                              value: 'CODIGO_FREGUESIA',
-                              selectLabel: 'Freguesia',
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 5),
+                                  child: Text(
+                                    'Freguesia',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 5),
+                                DropDownTextField(
+                                  onChanged: (value) {
+                                    print(value);
+                                  },
+                                  controller: freguesia,
+                                  enableSearch: true,
+                                  searchDecoration: InputDecoration(
+                                    hintText: 'Pesquisar...',
+                                    border: InputBorder.none,
+                                  ),
+                                  textFieldDecoration: InputDecoration(
+                                    hintText: 'Freguesia',
+                                    contentPadding: EdgeInsets.symmetric(
+                                      vertical: 7,
+                                      horizontal: 10,
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                      borderSide: BorderSide(
+                                        color: AppColors.border,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                      borderSide: BorderSide(
+                                        color: AppColors.border,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                      borderSide: BorderSide(
+                                        color: AppColors.border,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  dropDownList: [
+                                    ...freguesias
+                                        .map(
+                                          (freguesia) => DropDownValueModel(
+                                            name: freguesia['DESCRICAO'],
+                                            value: {
+                                              'CODIGO_CONCELHO':
+                                                  freguesia['CODIGO_CONCELHO'],
+                                              'CODIGO_DISTRITO':
+                                                  freguesia['CODIGO_DISTRITO'],
+                                              'CODIGO_FREGUESIA':
+                                                  freguesia['CODIGO_FREGUESIA'],
+                                            },
+                                          ),
+                                        )
+                                        .toList(),
+                                  ],
+                                ),
+                              ],
                             ),
                             SizedBox(height: 10),
                             Input(
@@ -358,7 +546,7 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                               selectLabel: 'Objetivo',
                             ),
                             SizedBox(height: 10),
-                            
+
                             // Campo de data e hora
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: 5),
@@ -393,14 +581,14 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                                     SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                        dateTimeController.text.isEmpty 
-                                          ? 'Selecionar data e hora'
-                                          : dateTimeController.text,
+                                        dateTimeController.text.isEmpty
+                                            ? 'Selecionar data e hora'
+                                            : dateTimeController.text,
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color: dateTimeController.text.isEmpty 
-                                            ? Colors.grey[600]
-                                            : AppColors.title,
+                                          color: dateTimeController.text.isEmpty
+                                              ? Colors.grey[600]
+                                              : AppColors.title,
                                         ),
                                       ),
                                     ),
@@ -423,7 +611,7 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                               ),
                             ),
                             SizedBox(height: 10),
-                            
+
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: 5),
                               child: Text(
@@ -460,7 +648,8 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                                               border: Border.all(
                                                 color: AppColors.border,
                                               ),
-                                              borderRadius: BorderRadius.circular(12),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                             ),
                                             width: 100,
                                             height: 100,
@@ -482,7 +671,8 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                                                 padding: EdgeInsets.all(4),
                                                 decoration: BoxDecoration(
                                                   color: Colors.red,
-                                                  borderRadius: BorderRadius.circular(15),
+                                                  borderRadius:
+                                                      BorderRadius.circular(15),
                                                 ),
                                                 child: Icon(
                                                   Icons.close,
@@ -502,7 +692,9 @@ class _AddprojectScreenState extends State<AddprojectScreen> {
                                           border: Border.all(
                                             color: AppColors.border,
                                           ),
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         width: 100,
                                         height: 100,

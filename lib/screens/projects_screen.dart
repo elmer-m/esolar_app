@@ -71,7 +71,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                   ),
                 ),
                 Spacer(),
-                Icon(Icons.more_horiz),
+                // Icon(Icons.more_horiz),
               ],
             ),
           ),
@@ -153,12 +153,14 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                                           .location_on_outlined,
                                                     ),
                                                     SizedBox(width: 5),
-                                                    Text(
+                                                    Expanded(child: Text(
+                                                      overflow: TextOverflow.ellipsis,
+                                                      maxLines: 1,
                                                       project['ADDRESS'],
                                                       style: TextStyle(
                                                         fontSize: 15,
                                                       ),
-                                                    ),
+                                                    ),),
                                                   ],
                                                 ),
                                                 SizedBox(height: 7),

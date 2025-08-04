@@ -472,16 +472,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   Navigator.push(context, MaterialPageRoute(builder: (context) => EmployeesScreen()));
                                 },
                               ),
-                              buildSettingItem(
-                                icon: Icons.business,
-                                title: "Informações da Empresa",
-                                subtitle: "Editar dados da organização",
-                                iconColor: Colors.green,
-                                onTap: () {
-                                  // Implementar navegação para info da empresa
-                                },
-                                showDivider: false,
-                              ),
+                              // buildSettingItem(
+                              //   icon: Icons.business,
+                              //   title: "Informações da Empresa",
+                              //   subtitle: "Editar dados da organização",
+                              //   iconColor: Colors.green,
+                              //   onTap: () {
+                              //     // Implementar navegação para info da empresa
+                              //   },
+                              //   showDivider: false,
+                              // ),
                             ],
                           ),
                         ),

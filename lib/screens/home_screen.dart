@@ -21,6 +21,8 @@ class _HomeScreenState extends State<HomeScreen> {
   var user;
   var company;
   var project;
+  var quantity;
+  var active;
 
   Future<void> getInfo() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -39,6 +41,8 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           hasProject = data['has'];
           project = data['project'];
+          quantity = data['quantity'];
+          active = data['actives'];
           loaded = true;
         });
       }
@@ -113,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 SingleChildScrollView(
                   child: Column(
                     children: [
-                      if (hasProject && project != null)
+                      if (hasProject && project != null && project.isNotEmpty)
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
@@ -196,11 +200,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       const SizedBox(height: 10),
-                      _buildBox("Propostas Pendentes", "2"),
+                      _buildBox("Visitas Pendentes", quantity.toString()),
                       const SizedBox(height: 10),
-                      _buildBox("Propostas Pendentes", "2"),
+                      _buildBox("Projetos Ativos", active.toString()),
                       const SizedBox(height: 10),
-                      _buildBox("Propostas Pendentes", "2"),
                     ],
                   ),
                 ),

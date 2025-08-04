@@ -29,6 +29,9 @@ class _SelectState extends State<Select> {
         ),
         SizedBox(height: 5),
         DropDownTextField(
+          onChanged: (value) {
+            print(value);
+          },
           controller: widget.controller,
           enableSearch: true,
           searchDecoration: InputDecoration(hintText: 'Pesquisar...', border: InputBorder.none),
